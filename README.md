@@ -123,12 +123,14 @@ agent-envoyou/
 │           ├── BackendReviewerAgent.yaml # Architecture review
 │           └── BackendRefactorAgent.yaml # Performance optimization
 ├── 📁 docs/                            # Documentation
-│   ├── 📄 PROVIDER_SETUP.md            # Complete AI provider guide
-│   └── 📁 tutorial_ADK-Google/         # Google ADK tutorials
+│   ├── 📄 CHANGELOG.md                 # Complete Version
+│   ├── 📄 DEVELOPMENT.md               # Complete AI provider 
+│   └── 📄 PROVIDER_SETUP.md            # Guide covers
 ├── 📄 agent.py                         # Main orchestrator
 ├── 📄 provider_manager.py              # Multi-provider system
 ├── 📄 root_agent.yaml                  # Root configuration
 ├── 📄 .env                             # Provider configuration
+├── 📄 .env.example                     # Example configuration
 ├── 📄 README.md                        # This file
 └── 📄 CONTRIBUTING.md                  # Contribution guidelines
 ```
@@ -355,7 +357,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## 📄 **License**
 
-This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
