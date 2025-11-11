@@ -28,7 +28,7 @@
 </div>
 
 > [!TIP]  
-> 🚀 **Production-Ready Multi-Agent System** | No vendor lock-in | Demo mode available | 6 AI providers supported
+> **Agent Envoyou** now complete transformation from a simple multi-agent coordinator into a comprehensive enterprise-ready development platform with tools, memory, and advanced state management.
 
 ---
 
