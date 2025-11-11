@@ -286,7 +286,9 @@ class ProviderManager:
         
         # If in demo mode, consider all demo providers as available
         if provider.demo_mode:
-            self.logger.info(f"✅ Demo mode: {provider.name} considered available")
+            # Clean provider name for demo logging (remove "(Demo)" suffix)
+            clean_name = provider.name.replace(" (Demo)", "")
+            self.logger.info(f"✅ Demo mode: {clean_name} considered available")
             return True
         
         try:
@@ -325,13 +327,13 @@ class ProviderManager:
     def get_demo_models(self) -> Dict[str, str]:
         """Get demo models for when no API keys are available."""
         return {
-            "FrontendWriterAgent": "gpt-4o (Demo)",
-            "FrontendReviewerAgent": "claude-3-5-sonnet (Demo)",
-            "FrontendRefactorAgent": "gpt-4o-mini (Demo)",
-            "BackendWriterAgent": "claude-3-5-sonnet (Demo)",
-            "BackendReviewerAgent": "gpt-4o (Demo)",
-            "BackendRefactorAgent": "gemini-2.5-pro (Demo)",
-            "FullstackManagerAgent": "claude-3-5-sonnet (Demo)"
+            "FrontendWriterAgent": "gpt-4o",
+            "FrontendReviewerAgent": "claude-3-5-sonnet-20241022",
+            "FrontendRefactorAgent": "gpt-4o-mini",
+            "BackendWriterAgent": "claude-3-5-sonnet-20241022",
+            "BackendReviewerAgent": "gpt-4o",
+            "BackendRefactorAgent": "gemini-2.5-pro-latest",
+            "FullstackManagerAgent": "claude-3-5-sonnet-20241022"
         }
 
 # Global provider manager instance

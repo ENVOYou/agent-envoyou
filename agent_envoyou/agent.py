@@ -21,8 +21,8 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 from google.adk.agents import LlmAgent, BaseAgent, SequentialAgent
 
-# Import our multi-provider manager
-from provider_manager import (
+# Import our multi-provider manager (absolute import for proper module resolution)
+from agent_envoyou.provider_manager import (
     provider_manager,
     get_optimal_model,
     get_best_available_provider,
@@ -196,7 +196,7 @@ def create_fullstack_agent() -> BaseAgent:
             raise Exception("Provider initialization failed")
         
         # Load the root agent configuration
-        root_config = load_agent_config('root_agent.yaml')
+        root_config = load_agent_config('agent_envoyou/root_agent.yaml')
         
         # Extract root agent details
         name = root_config.get('name', 'FullstackManagerAgent')
@@ -245,7 +245,7 @@ def create_fullstack_agent() -> BaseAgent:
     except FileNotFoundError as e:
         logger.error(f"❌ Error: Configuration file not found - {e}")
         logger.error("Please ensure all YAML configuration files exist:")
-        logger.error("- root_agent.yaml")
+        logger.error("- agent_envoyou/root_agent.yaml")
         logger.error("- agent_envoyou/frontend_agent/sub_agent/*.yaml")
         logger.error("- agent_envoyou/backend_agent/sub_agent/*.yaml")
         raise
