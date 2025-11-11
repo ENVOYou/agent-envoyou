@@ -32,6 +32,25 @@ from agent_envoyou.provider_manager import (
     is_demo_mode
 )
 
+# Import our enhanced tools and services
+from agent_envoyou.tools import (
+    FileSystemTool,
+    CodeExecutorTool,
+    GitManagerTool,
+    DockerBuilderTool,
+    PackageManagerTool
+)
+from agent_envoyou.memory_service import (
+    enhance_agent_with_memory,
+    fullstack_memory,
+    get_memory_tools
+)
+from agent_envoyou.state_manager import (
+    state_manager,
+    inject_state_templates,
+    StateAwareAgentMixin
+)
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,7 +108,7 @@ def load_agent_config(config_path: str) -> Dict[str, Any]:
         return yaml.safe_load(file)
 
 def create_agent_from_config(config_path: str) -> BaseAgent:
-    """Create an agent from YAML configuration file."""
+    """Create an agent from YAML configuration file with enhanced capabilities."""
     config = load_agent_config(config_path)
     
     # Extract configuration values
@@ -105,14 +124,45 @@ def create_agent_from_config(config_path: str) -> BaseAgent:
     # Get optimal model for this agent
     model = get_optimal_model_for_agent(name)
     
+    # Get tools configuration
+    tools_config = config.get('tools', [])
+    tools = []
+    
+    # Add appropriate tools based on agent type and config
+    if 'file_system' in tools_config or name in ['FrontendWriterAgent', 'BackendWriterAgent', 'FullstackManagerAgent']:
+        tools.append(FileSystemTool())
+    
+    if 'code_executor' in tools_config or name in ['FrontendReviewerAgent', 'BackendReviewerAgent', 'FrontendRefactorAgent', 'BackendRefactorAgent']:
+        tools.append(CodeExecutorTool())
+    
+    if 'git_manager' in tools_config or name in ['FrontendWriterAgent', 'BackendWriterAgent', 'FullstackManagerAgent']:
+        tools.append(GitManagerTool())
+    
+    if 'memory' in tools_config:
+        tools.extend(get_memory_tools())
+    
+    # Add memory capabilities to agents
+    memory_enabled = config.get('memory_enabled', True)
+    
     # Create the agent based on class type
     if agent_class == 'LlmAgent':
         agent = LlmAgent(
             name=name,
             model=model,
             description=description,
-            instruction=instruction
+            instruction=instruction,
+            tools=tools
         )
+        
+        # Add memory capabilities if enabled
+        if memory_enabled:
+            import asyncio
+            try:
+                # Enhance agent with memory
+                asyncio.create_task(enhance_agent_with_memory(agent))
+                logger.info(f"Enhanced {name} with memory capabilities")
+            except Exception as e:
+                logger.warning(f"Failed to enhance {name} with memory: {e}")
         
         # Add sub-agents if they exist
         sub_agents_config = config.get('sub_agents', [])

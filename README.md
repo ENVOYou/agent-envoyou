@@ -12,11 +12,13 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v2.0.0-blue)
+![Version](https://img.shields.io/badge/version-v3.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 ![AI Providers](https://img.shields.io/badge/AI_Providers-Multi--Provider-green)
 ![Multi-Agent](https://img.shields.io/badge/Multi--Agent-Coordination-purple)
+![Tools](https://img.shields.io/badge/Tools-Enterprise--Ready-red)
+![Memory](https://img.shields.io/badge/Memory-Learning--Enabled-orange)
 [![Documentation](https://img.shields.io/badge/docs-available-blue)](docs/PROVIDER_SETUP.md)
 
 </div>
@@ -34,21 +36,33 @@
 
 Agent Envoyou is a **sophisticated multi-agent orchestration system** built on Google ADK that coordinates specialized AI agents for fullstack development. With **provider-agnostic architecture**, you can use your preferred AI provider (Google, OpenAI, Anthropic, xAI, OpenRouter, or local Ollama) without changing code.
 
-## ✨ **Latest Features (v2.0.0)**
+## ✨ **Latest Features (v3.0.0)**
 
-### 🤖 **Multi-Provider AI Support**
+### 🛠️ **Enterprise Tools Integration**
+- **FileSystemTool**: Safe file operations with path validation
+- **CodeExecutorTool**: Secure code execution and testing sandbox
+- **GitManagerTool**: Version control operations (commit, branch, push)
+- **DockerBuilderTool**: Automatic containerization for generated apps
+- **PackageManagerTool**: Dependency management across platforms
+
+### 🧠 **Memory Service & Learning**
+- **Long-term Memory**: Agents learn from past conversations
+- **Project Patterns**: Store successful architectures and templates
+- **User Preferences**: Remember development choices and workflows
+- **Best Practices**: Automatic retrieval of proven solutions
+
+### 📊 **Advanced State Management**
+- **Session State**: Context-aware project development
+- **User State**: Personal preferences and project history
+- **App State**: Global settings and supported technologies
+- **Temp State**: Real-time execution progress tracking
+
+### 🤖 **Enhanced Multi-Provider AI**
 - **6 AI Providers**: Google AI, OpenAI, Anthropic, xAI, OpenRouter, Ollama
-- **Smart Model Selection**: Automatically chooses optimal models per task complexity
+- **Smart Model Selection**: Optimal models per task complexity
 - **Demo Mode**: Works out-of-the-box without API keys
-- **Cost Optimization**: Use cheaper models for simple tasks, premium for complex ones
+- **Cost Optimization**: Intelligent provider switching
 - **Automatic Fallback**: 99.9% uptime with provider failover
-
-### 🏗️ **Advanced Agent Architecture**
-- **Root Coordinator**: `FullstackManagerAgent` - High-level project management
-- **Frontend Team**: Writer → Reviewer → Refactorer workflow
-- **Backend Team**: Writer → Reviewer → Refactorer workflow
-- **Sequential Agents**: Coordinated multi-step execution
-- **Hierarchical Delegation**: Efficient task distribution and quality control
 
 ### 🛠️ **Modern Tech Stack**
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS

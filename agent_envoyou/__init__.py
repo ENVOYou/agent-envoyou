@@ -13,9 +13,9 @@ Modules:
 
 from .agent import root_agent
 
-__version__ = "2.0.0"
-__author__ = "Envoyou"  
-__email__ = "hello@envoyou.com" 
+__version__ = "3.0.0"
+__author__ = "Envoyou"
+__email__ = "hello@envoyou.com"
 __license__ = "Apache 2.0"
 __copyright__ = f"Copyright 2025 {__author__}"
 
