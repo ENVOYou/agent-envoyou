@@ -3,6 +3,6 @@ agent_class: SequentialAgent
 name: FrontendTeamAgent
 description: Executes a sequence of code writing, reviewing, and refactoring.
 sub_agents:
-  - config_path: frontend_agent/sub_agent/FrontendWriterAgent.yaml
-  - config_path: frontend_agent/sub_agent/FrontendReviewerAgent.yaml
-  - config_path: frontend_agent/sub_agent/FrontendRefactorAgent.yaml
+  - config_path: agent_envoyou/frontend_agent/sub_agent/FrontendWriterAgent.yaml
+  - config_path: agent_envoyou/frontend_agent/sub_agent/FrontendReviewerAgent.yaml
+  - config_path: agent_envoyou/frontend_agent/sub_agent/FrontendRefactorAgent.yaml

@@ -3,6 +3,6 @@ agent_class: SequentialAgent
 name: BackendTeamAgent
 description: Executes a sequence of code writing, reviewing, and refactoring.
 sub_agents:
-  - config_path: backend_agent/sub_agent/BackendWriterAgent.yaml
-  - config_path: backend_agent/sub_agent/BackendReviewerAgent.yaml
-  - config_path: backend_agent/sub_agent/BackendRefactorAgent.yaml
+  - config_path: agent_envoyou/backend_agent/sub_agent/BackendWriterAgent.yaml
+  - config_path: agent_envoyou/backend_agent/sub_agent/BackendReviewerAgent.yaml
+  - config_path: agent_envoyou/backend_agent/sub_agent/BackendRefactorAgent.yaml

@@ -60,5 +60,5 @@ instruction: |
   - Conduct thorough testing and quality validation
   - Deliver complete solutions with minimal follow-up requirements
 sub_agents:
-  - config_path: frontend_agent/root.yaml  # This will be a sequential agent
-  - config_path: backend_agent/root.yaml   # This is also a sequential agent
+  - config_path: agent_envoyou/frontend_agent/root.yaml  # This will be a sequential agent
+  - config_path: agent_envoyou/backend_agent/root.yaml   # This is also a sequential agent

@@ -1,5 +1,5 @@
 """
-Fullstack Multi-Agent System using Google ADK
+Multi-Provider Fullstack Agent System using Google ADK
 
 This package provides a comprehensive multi-agent system for fullstack development
 including frontend and backend specialization with modern SaaS standards.
@@ -13,7 +13,7 @@ Modules:
 
 from .agent import root_agent
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "Envoyou"  
 __email__ = "hello@envoyou.com" 
 __license__ = "MIT"
