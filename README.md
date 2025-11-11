@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/ENVOYou/agent-envoyou">
-    <img src=".github/LOGO-AGENT.png" width="150" alt="Agent Envoyou Logo">
+    <img src="assets/LOGO-AGENT.png" width="150" alt="Agent Envoyou Logo">
   </a>
 </p>
 
@@ -14,7 +14,7 @@
 
 ![Version](https://img.shields.io/badge/version-v2.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 ![AI Providers](https://img.shields.io/badge/AI_Providers-Multi--Provider-green)
 ![Multi-Agent](https://img.shields.io/badge/Multi--Agent-Coordination-purple)
 [![Documentation](https://img.shields.io/badge/docs-available-blue)](docs/PROVIDER_SETUP.md)
@@ -22,7 +22,7 @@
 </div>
 
 <div align="center">
-  <img src=".github/demo-screenshot.png" alt="Agent Envoyou Demo" width="800" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+  <img src="assets/demo-screenshot.png" alt="Agent Envoyou Demo" width="800" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
 </div>
 
 > [!TIP]  
@@ -132,7 +132,10 @@ agent-envoyou/
 ├── 📄 .env                             # Provider configuration
 ├── 📄 .env.example                     # Example configuration
 ├── 📄 README.md                        # This file
-└── 📄 CONTRIBUTING.md                  # Contribution guidelines
+├── 📄 CONTRIBUTING.md                  # Contribution guidelines
+├── 📁 licenses/                        # License files
+│   ├── 📄 LICENSE                      # Apache License 2.0
+│   └── 📄 LICENSE_ADK                  # Google ADK License
 ```
 
 ## 🎮 **Usage Examples**
@@ -357,7 +360,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## 📄 **License**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](licenses/LICENSE) file for details.
+
+This project uses Google ADK, which is also licensed under Apache 2.0 - see [LICENSE_ADK](licenses/LICENSE_ADK) for details.
 
 ---
 
