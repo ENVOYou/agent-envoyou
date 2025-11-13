@@ -45,20 +45,20 @@ def get_model_for_provider(provider_name: str, complexity: str = "medium") -> st
     # Map provider to model strings (ADK native approach)
     provider_models = {
         "GOOGLE": {
-            "complex": "gemini-2.5-pro-latest",      # Complex tasks
+            "complex": "gemini-2.5-pro",      # Complex tasks
             "simple": "gemini-2.5-flash",           # Simple/fast tasks
         },
         "OPENAI": {
-            "complex": "openai/gpt-4o",
-            "simple": "openai/gpt-4o-mini",
+            "complex": "openai/gpt-5",
+            "simple": "openai/gpt-4",
         },
         "ANTHROPIC": {
-            "complex": "anthropic/claude-3-5-sonnet-20241022",
-            "simple": "anthropic/claude-3-haiku-20240307",
+            "complex": "anthropic/Opus 4.1",
+            "simple": "anthropic/Sonnet 4.5",
         },
         "XAI": {
-            "complex": "xai/grok-beta",
-            "simple": "xai/grok-beta",
+            "complex": "xai/grok-code-fast-1",
+            "simple": "xai/grok-code-fast-1",
         },
         "OPENROUTER": {
             "complex": "openrouter/openai/gpt-4o",
