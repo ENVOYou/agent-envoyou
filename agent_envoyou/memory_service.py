@@ -185,13 +185,17 @@ def get_memory_tools():
 async def enhance_agent_with_memory(agent, agent_type: str = "general"):
     """Enhance an agent with memory capabilities."""
     try:
-        # Add memory tools to the agent
+        # Add memory tools to the agent (this is the correct ADK way)
         tools = list(agent.tools) if hasattr(agent, 'tools') else []
         tools.extend(get_memory_tools())
         agent.tools = tools
         
-        # Add memory service reference
-        agent.memory_service = fullstack_memory
+        # Store memory service reference in a way that's compatible with ADK
+        # Instead of direct field assignment, we'll use a dictionary approach
+        if not hasattr(agent, '_memory_context'):
+            agent._memory_context = {}
+        agent._memory_context['memory_service'] = fullstack_memory
+        agent._memory_context['agent_type'] = agent_type
         
         # Update agent instructions to include memory usage
         if hasattr(agent, 'instruction'):
@@ -231,7 +235,9 @@ class MemoryAwareAgentMixin:
         """Store the outcome of a task in memory."""
         try:
             if success:
-                await fullstack_memory.store_best_practice(task_type, {
+                # Get memory service from context instead of direct attribute
+                memory_service = getattr(self, '_memory_context', {}).get('memory_service', fullstack_memory)
+                await memory_service.store_best_practice(task_type, {
                     "success": True,
                     "details": details,
                     "timestamp": details.get("timestamp"),
@@ -243,11 +249,14 @@ class MemoryAwareAgentMixin:
     async def get_agent_context(self, task_type: str) -> Dict[str, Any]:
         """Get relevant context from memory for current task."""
         try:
+            # Get memory service from context instead of direct attribute
+            memory_service = getattr(self, '_memory_context', {}).get('memory_service', fullstack_memory)
+            
             # Get relevant patterns
-            patterns = await fullstack_memory.search_project_patterns(task_type)
+            patterns = await memory_service.search_project_patterns(task_type)
             
             # Get relevant practices
-            practices = await fullstack_memory.get_relevant_practices(task_type)
+            practices = await memory_service.get_relevant_practices(task_type)
             
             return {
                 "patterns": patterns,

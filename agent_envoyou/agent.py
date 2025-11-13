@@ -19,20 +19,14 @@ import yaml
 import logging
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+# Import ADK's built-in components
 from google.adk.agents import LlmAgent, BaseAgent, SequentialAgent
+from google.adk.memory import InMemoryMemoryService
+from google.adk.tools import load_memory, preload_memory
+from google.adk.models.lite_llm import LiteLlm
 
-# Import our multi-provider manager (absolute import for proper module resolution)
-from agent_envoyou.provider_manager import (
-    provider_manager,
-    get_optimal_model,
-    get_best_available_provider,
-    get_model_config,
-    is_provider_fallback_enabled,
-    get_demo_or_real_model,
-    is_demo_mode
-)
-
-# Import our enhanced tools and services
+# Import our enhanced tools
 from agent_envoyou.tools import (
     FileSystemTool,
     CodeExecutorTool,
@@ -40,67 +34,67 @@ from agent_envoyou.tools import (
     DockerBuilderTool,
     PackageManagerTool
 )
-from agent_envoyou.memory_service import (
-    enhance_agent_with_memory,
-    fullstack_memory,
-    get_memory_tools
-)
-from agent_envoyou.state_manager import (
-    state_manager,
-    inject_state_templates,
-    StateAwareAgentMixin
-)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def initialize_providers():
-    """Initialize and test AI providers."""
-    logger.info("🚀 Initializing Multi-Provider AI System...")
+def get_model_for_provider(provider_name: str, complexity: str = "medium") -> str:
+    """Get appropriate model string based on provider and complexity."""
     
-    # Test available providers
-    available_providers = provider_manager.get_available_providers()
-    logger.info(f"📋 Found {len(available_providers)} configured providers:")
-    
-    for provider in available_providers:
-        if provider_manager.test_provider(provider):
-            logger.info(f"   ✅ {provider.name} - Available")
-        else:
-            logger.warning(f"   ❌ {provider.name} - Unavailable")
-    
-    # Get best provider
-    best_provider = get_best_available_provider()
-    if best_provider:
-        logger.info(f"🎯 Primary Provider: {best_provider.name}")
-    else:
-        logger.error("❌ No available providers found!")
-        return False
-    
-    return True
-
-def get_optimal_model_for_agent(agent_name: str, complexity: str = "medium") -> str:
-    """Get optimal model for a specific agent."""
-    
-    # Agent-specific complexity mappings
-    complexity_mapping = {
-        "FrontendWriterAgent": "high",      # Complex UI development
-        "FrontendReviewerAgent": "medium",  # Code review
-        "FrontendRefactorAgent": "medium",  # Code refactoring
-        "BackendWriterAgent": "high",       # Complex backend architecture
-        "BackendReviewerAgent": "medium",   # Code review
-        "BackendRefactorAgent": "medium",   # Code refactoring
-        "FullstackManagerAgent": "high"     # High-level coordination
+    # Map provider to model strings (ADK native approach)
+    provider_models = {
+        "GOOGLE": {
+            "complex": "gemini-2.5-pro-latest",      # Complex tasks
+            "simple": "gemini-2.5-flash",           # Simple/fast tasks
+        },
+        "OPENAI": {
+            "complex": "openai/gpt-4o",
+            "simple": "openai/gpt-4o-mini",
+        },
+        "ANTHROPIC": {
+            "complex": "anthropic/claude-3-5-sonnet-20241022",
+            "simple": "anthropic/claude-3-haiku-20240307",
+        },
+        "XAI": {
+            "complex": "xai/grok-beta",
+            "simple": "xai/grok-beta",
+        },
+        "OPENROUTER": {
+            "complex": "openrouter/openai/gpt-4o",
+            "simple": "openrouter/openai/gpt-4o-mini",
+        }
     }
     
-    # Use specific complexity if provided, otherwise use default
-    if complexity == "medium":
-        agent_complexity = complexity_mapping.get(agent_name, "medium")
-    else:
-        agent_complexity = complexity
+    # Get provider from environment
+    env_provider = os.getenv("AI_PROVIDER", "GOOGLE").upper()
     
-    # Use demo or real model based on available providers
-    return get_demo_or_real_model(agent_name, agent_complexity)
+    # Get models for the provider
+    models = provider_models.get(env_provider, provider_models["GOOGLE"])
+    
+    # Return appropriate model based on complexity
+    return models.get(complexity, models["simple"])
+
+def create_lite_llm_model(model_string: str):
+    """Create LiteLlm wrapper for non-Gemini models."""
+    return LiteLlm(model=model_string)
+
+def get_agent_model(agent_name: str) -> str:
+    """Get model string for specific agent type."""
+    
+    # Map agent types to complexity requirements
+    agent_complexity = {
+        "FullstackManagerAgent": "complex",
+        "FrontendWriterAgent": "complex",       # Complex UI development
+        "FrontendReviewerAgent": "simple",      # Code review (faster)
+        "FrontendRefactorerAgent": "simple",    # Code refactoring (faster)
+        "BackendWriterAgent": "complex",        # Complex backend architecture
+        "BackendReviewerAgent": "simple",       # Code review (faster)
+        "BackendRefactorerAgent": "simple",     # Code refactoring (faster)
+    }
+    
+    complexity = agent_complexity.get(agent_name, "simple")
+    return get_model_for_provider("", complexity)
 
 def load_agent_config(config_path: str) -> Dict[str, Any]:
     """Load agent configuration from YAML file."""
@@ -108,7 +102,7 @@ def load_agent_config(config_path: str) -> Dict[str, Any]:
         return yaml.safe_load(file)
 
 def create_agent_from_config(config_path: str) -> BaseAgent:
-    """Create an agent from YAML configuration file with enhanced capabilities."""
+    """Create an agent from YAML configuration file following ADK patterns."""
     config = load_agent_config(config_path)
     
     # Extract configuration values
@@ -121,8 +115,15 @@ def create_agent_from_config(config_path: str) -> BaseAgent:
     if isinstance(instruction, list):
         instruction = '\n'.join(instruction)
     
-    # Get optimal model for this agent
-    model = get_optimal_model_for_agent(name)
+    # Get model for this agent
+    model_string = config.get('model', 'auto')
+    if model_string == 'auto':
+        model_string = get_agent_model(name)
+    
+    # Create model wrapper if needed (for non-Gemini models)
+    model = model_string
+    if not model_string.startswith("gemini"):
+        model = create_lite_llm_model(model_string)
     
     # Get tools configuration
     tools_config = config.get('tools', [])
@@ -132,37 +133,24 @@ def create_agent_from_config(config_path: str) -> BaseAgent:
     if 'file_system' in tools_config or name in ['FrontendWriterAgent', 'BackendWriterAgent', 'FullstackManagerAgent']:
         tools.append(FileSystemTool())
     
-    if 'code_executor' in tools_config or name in ['FrontendReviewerAgent', 'BackendReviewerAgent', 'FrontendRefactorAgent', 'BackendRefactorAgent']:
+    if 'code_executor' in tools_config or name in ['FrontendReviewerAgent', 'BackendReviewerAgent', 'FrontendRefactorerAgent', 'BackendRefactorerAgent']:
         tools.append(CodeExecutorTool())
     
     if 'git_manager' in tools_config or name in ['FrontendWriterAgent', 'BackendWriterAgent', 'FullstackManagerAgent']:
         tools.append(GitManagerTool())
     
-    if 'memory' in tools_config:
-        tools.extend(get_memory_tools())
-    
-    # Add memory capabilities to agents
-    memory_enabled = config.get('memory_enabled', True)
+    # Add memory tools for all agents
+    tools.extend([load_memory, preload_memory])
     
     # Create the agent based on class type
     if agent_class == 'LlmAgent':
         agent = LlmAgent(
             name=name,
-            model=model,
+            model=model,  # Pass model directly (string for Gemini, LiteLlm wrapper for others)
             description=description,
             instruction=instruction,
             tools=tools
         )
-        
-        # Add memory capabilities if enabled
-        if memory_enabled:
-            import asyncio
-            try:
-                # Enhance agent with memory
-                asyncio.create_task(enhance_agent_with_memory(agent))
-                logger.info(f"Enhanced {name} with memory capabilities")
-            except Exception as e:
-                logger.warning(f"Failed to enhance {name} with memory: {e}")
         
         # Add sub-agents if they exist
         sub_agents_config = config.get('sub_agents', [])
@@ -196,6 +184,60 @@ def create_agent_from_config(config_path: str) -> BaseAgent:
         return agent
     else:
         raise ValueError(f"Unsupported agent class: {agent_class}")
+
+def create_fullstack_agent() -> BaseAgent:
+    """Create the main fullstack agent following ADK patterns."""
+    try:
+        # Load the root agent configuration
+        root_config = load_agent_config('agent_envoyou/root_agent.yaml')
+        
+        # Extract root agent details
+        name = root_config.get('name', 'FullstackManagerAgent')
+        description = root_config.get('description', 'Project manager for fullstack development')
+        
+        # Handle instruction which might be a multiline string
+        instruction = root_config.get('instruction', '')
+        if isinstance(instruction, list):
+            instruction = '\n'.join(instruction)
+        
+        # Get model for root agent (complex)
+        root_model_string = get_agent_model(name)
+        root_model = root_model_string
+        if not root_model_string.startswith("gemini"):
+            root_model = create_lite_llm_model(root_model_string)
+        
+        # Create the root agent following ADK patterns
+        root_agent = LlmAgent(
+            name=name,
+            model=root_model,
+            description=description,
+            instruction=instruction
+        )
+        
+        # Load frontend and backend agents
+        frontend_agents = load_frontend_agents()
+        backend_agents = load_backend_agents()
+        
+        # Assign sub-agents to root agent
+        all_sub_agents = frontend_agents + backend_agents
+        root_agent.sub_agents = all_sub_agents
+        
+        logger.info(f"✅ Successfully created Fullstack Manager Agent with {len(all_sub_agents)} sub-agents:")
+        logger.info(f"   🎨 Frontend Team: {len(frontend_agents)} agents")
+        logger.info(f"   ⚙️  Backend Team: {len(backend_agents)} agents")
+        
+        return root_agent
+        
+    except FileNotFoundError as e:
+        logger.error(f"❌ Error: Configuration file not found - {e}")
+        logger.error("Please ensure all YAML configuration files exist:")
+        logger.error("- agent_envoyou/root_agent.yaml")
+        logger.error("- agent_envoyou/frontend_agent/sub_agent/*.yaml")
+        logger.error("- agent_envoyou/backend_agent/sub_agent/*.yaml")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error creating agent: {e}")
+        raise
 
 def load_frontend_agents() -> List[BaseAgent]:
     """Load frontend sub-agents from their configuration files."""
@@ -237,73 +279,7 @@ def load_backend_agents() -> List[BaseAgent]:
     
     return backend_agents
 
-def create_fullstack_agent() -> BaseAgent:
-    """Create the main fullstack agent with all sub-agents."""
-    try:
-        # Initialize providers first
-        if not initialize_providers():
-            logger.error("❌ Failed to initialize providers")
-            raise Exception("Provider initialization failed")
-        
-        # Load the root agent configuration
-        root_config = load_agent_config('agent_envoyou/root_agent.yaml')
-        
-        # Extract root agent details
-        name = root_config.get('name', 'FullstackManagerAgent')
-        description = root_config.get('description', 'Project manager for fullstack development')
-        
-        # Handle instruction which might be a multiline string
-        instruction = root_config.get('instruction', '')
-        if isinstance(instruction, list):
-            instruction = '\n'.join(instruction)
-        
-        # Get optimal model for root agent (high complexity)
-        root_model = get_optimal_model_for_agent(name, "high")
-        
-        # Create the root agent
-        root_agent = LlmAgent(
-            name=name,
-            model=root_model,
-            description=description,
-            instruction=instruction
-        )
-        
-        # Load frontend and backend agents
-        frontend_agents = load_frontend_agents()
-        backend_agents = load_backend_agents()
-        
-        # Combine all sub-agents
-        all_sub_agents = frontend_agents + backend_agents
-        
-        # If root config has sub_agents, append our agents
-        root_sub_agents = root_config.get('sub_agents', [])
-        for sub_agent_config in root_sub_agents:
-            config_path = sub_agent_config.get('config_path')
-            if config_path and os.path.exists(config_path):
-                sub_agent = create_agent_from_config(config_path)
-                all_sub_agents.append(sub_agent)
-        
-        # Assign sub-agents to root agent
-        root_agent.sub_agents = all_sub_agents
-        
-        logger.info(f"✅ Successfully created Fullstack Manager Agent with {len(all_sub_agents)} sub-agents:")
-        logger.info(f"   🎨 Frontend Team: {len(frontend_agents)} agents")
-        logger.info(f"   ⚙️  Backend Team: {len(backend_agents)} agents")
-        
-        return root_agent
-        
-    except FileNotFoundError as e:
-        logger.error(f"❌ Error: Configuration file not found - {e}")
-        logger.error("Please ensure all YAML configuration files exist:")
-        logger.error("- agent_envoyou/root_agent.yaml")
-        logger.error("- agent_envoyou/frontend_agent/sub_agent/*.yaml")
-        logger.error("- agent_envoyou/backend_agent/sub_agent/*.yaml")
-        raise
-    except Exception as e:
-        logger.error(f"❌ Error creating agent: {e}")
-        raise
-
-# Create the main agent instance
+# Create the main agent instance following ADK patterns
 try:
     root_agent = create_fullstack_agent()
     logger.info(f"🚀 Fullstack Multi-Agent System ready!")

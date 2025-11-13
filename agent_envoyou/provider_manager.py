@@ -17,6 +17,9 @@ from enum import Enum
 import requests
 import json
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 class AIProvider(Enum):
     """Supported AI providers."""
     GOOGLE = "GOOGLE"
@@ -218,8 +221,8 @@ class ProviderManager:
         
         model_mappings = {
             "Google AI": [
-                "gemini-2.5-pro-latest", "gemini-2.5-flash", "gemini-1.5-pro-latest",
-                "gemini-1.5-flash", "gemini-1.0-pro"
+                "gemini-2.5-pro-latest", "gemini-2.5-flash-latest", "gemini-2.5-flash", 
+                "gemini-1.0-pro"
             ],
             "OpenAI": [
                 "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"
@@ -260,7 +263,7 @@ class ProviderManager:
             "backend_complex": {
                 "high": "claude-3-5-sonnet-20241022",  # Claude for architecture
                 "medium": "gpt-4o",
-                "low": "gemini-2.5-pro-latest"
+                "low": "gemini-2.5-flash-latest"
             },
             "backend_simple": {
                 "high": "gpt-4o-mini",
@@ -270,7 +273,7 @@ class ProviderManager:
             "code_review": {
                 "high": "claude-3-5-sonnet-20241022",
                 "medium": "gpt-4o",
-                "low": "gemini-2.5-pro-latest"
+                "low": "gemini-2.5-flash-latest"
             },
             "code_refactor": {
                 "high": "gpt-4o",
@@ -327,13 +330,13 @@ class ProviderManager:
     def get_demo_models(self) -> Dict[str, str]:
         """Get demo models for when no API keys are available."""
         return {
-            "FrontendWriterAgent": "gpt-4o",
-            "FrontendReviewerAgent": "claude-3-5-sonnet-20241022",
-            "FrontendRefactorAgent": "gpt-4o-mini",
-            "BackendWriterAgent": "claude-3-5-sonnet-20241022",
-            "BackendReviewerAgent": "gpt-4o",
-            "BackendRefactorAgent": "gemini-2.5-pro-latest",
-            "FullstackManagerAgent": "claude-3-5-sonnet-20241022"
+            "FrontendWriterAgent": "gemini-2.5-pro-latest",
+            "FrontendReviewerAgent": "gemini-2.5-flash-latest", 
+            "FrontendRefactorAgent": "gemini-2.5-flash-latest",
+            "BackendWriterAgent": "gemini-2.5-pro-latest",
+            "BackendReviewerAgent": "gemini-2.5-flash-latest",
+            "BackendRefactorAgent": "gemini-2.5-flash-latest",
+            "FullstackManagerAgent": "gemini-2.5-pro-latest"
         }
 
 # Global provider manager instance
@@ -397,6 +400,129 @@ def get_demo_or_real_model(agent_name: str, complexity: str = "medium") -> str:
         # Use demo models
         demo_models = provider_manager.get_demo_models()
         return demo_models.get(agent_name, "demo-model")
+
+def test_model_accessibility(model_name: str, provider: ProviderConfig) -> bool:
+    """Test if a specific model is accessible with the current API key."""
+    
+    # If in demo mode, assume all models are accessible
+    if provider.demo_mode:
+        return True
+    
+    try:
+        # Test the specific model
+        test_url = f"{provider.base_url}/models/{model_name}"
+        response = requests.get(test_url, headers=provider.headers, timeout=5)
+        return response.status_code < 400
+    except Exception as e:
+        logger.warning(f"Model accessibility test failed for {model_name}: {e}")
+        return False
+
+def resolve_auto_model(model_config: str, provider_name: str) -> str:
+    """Resolve 'auto' model configuration to actual model based on provider with fallback."""
+    
+    if model_config != "auto":
+        return model_config
+    
+    # Get the current provider
+    provider = provider_manager.get_provider()
+    if not provider:
+        return "gemini-2.5-pro-latest"  # Default fallback
+    
+    # Map provider to premium models with free tier fallbacks
+    provider_model_mapping = {
+        "Google AI": {
+            "complex": "gemini-2.5-pro-latest",
+            "simple": "gemini-2.5-flash", 
+            "fast": "gemini-2.5-flash",
+            # Free tier fallbacks
+            "complex_fallback": "gemini-2.5-pro-latest",
+            "simple_fallback": "gemini-2.5-flash", 
+            "fast_fallback": "gemini-2.5-flash"
+        },
+        "OpenAI": {
+            "complex": "gpt-4o",
+            "simple": "gpt-4o-mini",
+            "fast": "gpt-4o-mini"
+        },
+        "Anthropic": {
+            "complex": "claude-3-5-sonnet-20241022",
+            "simple": "claude-3-haiku-20240307",
+            "fast": "claude-3-haiku-20240307"
+        },
+        "xAI": {
+            "complex": "grok-beta",
+            "simple": "grok-beta",
+            "fast": "grok-beta"
+        },
+        "OpenRouter": {
+            "complex": "openai/gpt-4o",
+            "simple": "openai/gpt-4o-mini",
+            "fast": "meta-llama/llama-3.1-70b-instruct"
+        }
+    }
+    
+    # Get provider's optimal models
+    provider_models = provider_model_mapping.get(provider_name, provider_model_mapping["Google AI"])
+    
+    # For demo mode, use simple models (no access testing needed)
+    if provider_name.endswith("(Demo)"):
+        return provider_models["simple"]
+    
+    # Test premium model accessibility first
+    premium_model = provider_models["complex"]
+    if test_model_accessibility(premium_model, provider):
+        return premium_model
+    
+    # If premium model is not accessible, try fallback
+    fallback_model = provider_models.get("complex_fallback", provider_models["simple"])
+    if test_model_accessibility(fallback_model, provider):
+        return fallback_model
+    
+    # Final fallback to simple model
+    return provider_models["simple"]
+
+def get_environment_model_config() -> Dict[str, str]:
+    """Get model configurations from environment variables."""
+    return {
+        "primary": os.getenv("PRIMARY_MODEL", "auto"),
+        "fast": os.getenv("FAST_MODEL", "auto"),
+        "frontend_complex": os.getenv("FRONTEND_COMPLEXITY_MODEL", "auto"),
+        "frontend_simple": os.getenv("FRONTEND_SIMPLE_MODEL", "auto"),
+        "backend_complex": os.getenv("BACKEND_COMPLEXITY_MODEL", "auto"),
+        "backend_simple": os.getenv("BACKEND_SIMPLE_MODEL", "auto"),
+        "code_review": os.getenv("CODE_REVIEW_MODEL", "auto"),
+        "code_refactor": os.getenv("CODE_REFACTOR_MODEL", "auto"),
+    }
+
+def resolve_agent_model(agent_name: str, complexity: str = "medium") -> str:
+    """Resolve agent model based on environment config and provider."""
+    
+    env_config = get_environment_model_config()
+    
+    # Map agent names to environment config keys
+    agent_config_mapping = {
+        "FullstackManagerAgent": "primary",
+        "FrontendWriterAgent": "frontend_complex",
+        "FrontendReviewerAgent": "code_review",
+        "FrontendRefactorAgent": "code_refactor",
+        "BackendWriterAgent": "backend_complex",
+        "BackendReviewerAgent": "code_review",
+        "BackendRefactorAgent": "code_refactor"
+    }
+    
+    # Get model config key for this agent
+    config_key = agent_config_mapping.get(agent_name, "primary")
+    model_config = env_config.get(config_key, "auto")
+    
+    # Get current provider
+    provider = provider_manager.get_provider()
+    if not provider:
+        # Fallback to demo model
+        demo_models = provider_manager.get_demo_models()
+        return demo_models.get(agent_name, "gemini-2.5-pro-latest")
+    
+    # Resolve auto model to actual model
+    return resolve_auto_model(model_config, provider.name)
 
 # Environment-based configuration helpers
 def get_model_config() -> Dict[str, Any]:

@@ -17,3 +17,4 @@ Env/
 secrets.toml
 tutorial_ADK-Google
 !.env.example
+logs/
