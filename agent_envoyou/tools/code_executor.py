@@ -20,6 +20,12 @@ from datetime import datetime
 from google.adk.tools import BaseTool, FunctionTool
 from google.adk.tools.tool_context import ToolContext
 
+# Import tool confirmation system
+from .tool_confirmation import (
+    request_destructive_confirmation,
+    should_require_confirmation
+)
+
 
 class CodeExecutorTool(BaseTool):
     """Tool for safe code execution and testing."""
@@ -59,69 +65,96 @@ class CodeExecutorTool(BaseTool):
         return sandbox_path
     
     async def execute_python_code(self, context: ToolContext, code: str, timeout: int = None) -> Dict[str, Any]:
-        """Execute Python code safely in sandbox."""
-        try:
-            timeout = timeout or self.default_timeout
-            
-            # Create a temporary script file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-                f.write(code)
-                script_path = f.name
-            
+            """Execute Python code safely in sandbox with confirmation for complex code."""
             try:
-                # Execute with timeout and capture output
-                process = await asyncio.create_subprocess_exec(
-                    "python3", script_path,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    cwd=str(self.sandbox_dir)
+                timeout = timeout or self.default_timeout
+                
+                # Check if confirmation is required for this code execution
+                requires_confirmation = should_require_confirmation(
+                    "execute_code",
+                    {"code": code, "language": "python", "timeout": timeout}
                 )
                 
-                try:
-                    stdout, stderr = await asyncio.wait_for(
-                        process.communicate(), 
-                        timeout=min(timeout, self.max_timeout)
+                if requires_confirmation:
+                    confirmed = await request_destructive_confirmation(
+                        tool_name="CodeExecutorTool",
+                        operation_type="execute",
+                        description=f"Execute Python code (length: {len(code)} chars, timeout: {timeout}s)",
+                        parameters={
+                            "code": code,
+                            "language": "python",
+                            "timeout": timeout,
+                            "code_preview": code[:100] + "..." if len(code) > 100 else code
+                        }
                     )
                     
-                    result = {
-                        "success": process.returncode == 0,
-                        "return_code": process.returncode,
-                        "stdout": stdout.decode('utf-8') if stdout else "",
-                        "stderr": stderr.decode('utf-8') if stderr else "",
-                        "execution_time": timeout,
-                        "language": "python"
-                    }
-                    
-                    # Update context state
-                    context.state['temp:last_execution'] = result
-                    context.state['temp:last_execution_time'] = str(datetime.now())
-                    
-                    self.logger.info(f"Python code executed: {'Success' if result['success'] else 'Failed'}")
-                    
-                    return result
-                    
-                except asyncio.TimeoutError:
-                    process.kill()
-                    await process.wait()
-                    
-                    return {
-                        "success": False,
-                        "error": f"Execution timed out after {timeout} seconds",
-                        "language": "python",
-                        "timeout": timeout
-                    }
-                    
-            finally:
-                # Clean up temp file
-                os.unlink(script_path)
+                    if not confirmed:
+                        return {
+                            "success": False,
+                            "error": "Code execution cancelled by user",
+                            "language": "python",
+                            "cancelled": True
+                        }
                 
-        except Exception as e:
-            self.logger.error(f"Error executing Python code: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "language": "python"
-            }
+                # Create a temporary script file
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                    f.write(code)
+                    script_path = f.name
+                
+                try:
+                    # Execute with timeout and capture output
+                    process = await asyncio.create_subprocess_exec(
+                        "python3", script_path,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        cwd=str(self.sandbox_dir)
+                    )
+                    
+                    try:
+                        stdout, stderr = await asyncio.wait_for(
+                            process.communicate(),
+                            timeout=min(timeout, self.max_timeout)
+                        )
+                        
+                        result = {
+                            "success": process.returncode == 0,
+                            "return_code": process.returncode,
+                            "stdout": stdout.decode('utf-8') if stdout else "",
+                            "stderr": stderr.decode('utf-8') if stderr else "",
+                            "execution_time": timeout,
+                            "language": "python"
+                        }
+                        
+                        # Update context state
+                        context.state['temp:last_execution'] = result
+                        context.state['temp:last_execution_time'] = str(datetime.now())
+                        
+                        self.logger.info(f"Python code executed: {'Success' if result['success'] else 'Failed'}")
+                        
+                        return result
+                        
+                    except asyncio.TimeoutError:
+                        process.kill()
+                        await process.wait()
+                        
+                        return {
+                            "success": False,
+                            "error": f"Execution timed out after {timeout} seconds",
+                            "language": "python",
+                            "timeout": timeout
+                        }
+                        
+                finally:
+                    # Clean up temp file
+                    os.unlink(script_path)
+                    
+            except Exception as e:
+                self.logger.error(f"Error executing Python code: {e}")
+                return {
+                    "success": False,
+                    "error": str(e),
+                    "language": "python"
+                }
     
     async def execute_javascript_code(self, context: ToolContext, code: str, timeout: int = None) -> Dict[str, Any]:
         """Execute JavaScript/Node.js code safely."""

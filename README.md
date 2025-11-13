@@ -12,7 +12,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v3.0.0-blue)
+![Version](https://img.shields.io/badge/version-v3.1.0-blue)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 ![AI Providers](https://img.shields.io/badge/AI_Providers-Multi--Provider-green)
@@ -36,11 +36,12 @@
 
 Agent Envoyou is a **sophisticated multi-agent orchestration system** built on Google ADK that coordinates specialized AI agents for fullstack development. With **provider-agnostic architecture**, you can use your preferred AI provider (Google, OpenAI, Anthropic, xAI, OpenRouter, or local Ollama) without changing code.
 
-## ✨ **Latest Features (v3.0.0)**
+## ✨ **Latest Features (v3.1.0)**
 
 ### 🛠️ **Enterprise Tools Integration**
 - **FileSystemTool**: Safe file operations with path validation
 - **CodeExecutorTool**: Secure code execution and testing sandbox
+- **Tool Confirmation System**: Human-in-the-loop safety for destructive operations
 - **GitManagerTool**: Version control operations (commit, branch, push)
 - **DockerBuilderTool**: Automatic containerization for generated apps
 - **PackageManagerTool**: Dependency management across platforms

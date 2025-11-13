@@ -16,6 +16,12 @@ from google.adk.tools import BaseTool, FunctionTool
 from google.adk.tools.tool_context import ToolContext
 from google.genai.types import Content, Part
 
+# Import tool confirmation system
+from .tool_confirmation import (
+    request_destructive_confirmation,
+    should_require_confirmation
+)
+
 
 class FileSystemTool(BaseTool):
     """Tool for safe file system operations."""
@@ -149,60 +155,111 @@ class FileSystemTool(BaseTool):
             raise
     
     async def delete_file(self, context: ToolContext, file_path: str) -> Dict[str, Any]:
-        """Delete a file."""
-        try:
-            validated_path = self._validate_path(file_path)
-            
-            if not validated_path.exists():
-                raise FileNotFoundError(f"File not found: {file_path}")
-            
-            if not validated_path.is_file():
-                raise ValueError(f"Path is not a file: {file_path}")
-            
-            validated_path.unlink()
-            
-            self.logger.info(f"Deleted file: {validated_path}")
-            
-            return {
-                "success": True,
-                "file_path": str(validated_path),
-                "message": f"File deleted successfully: {file_path}"
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error deleting file {file_path}: {e}")
-            raise
+            """Delete a file with confirmation requirement."""
+            try:
+                validated_path = self._validate_path(file_path)
+                
+                if not validated_path.exists():
+                    raise FileNotFoundError(f"File not found: {file_path}")
+                
+                if not validated_path.is_file():
+                    raise ValueError(f"Path is not a file: {file_path}")
+                
+                # Check if confirmation is required
+                requires_confirmation = should_require_confirmation(
+                    "delete_files",
+                    {"paths": [str(validated_path)]}
+                )
+                
+                if requires_confirmation:
+                    confirmed = await request_destructive_confirmation(
+                        tool_name="FileSystemTool",
+                        operation_type="delete",
+                        description=f"Delete file: {validated_path}",
+                        parameters={"file_path": str(validated_path), "size": validated_path.stat().st_size}
+                    )
+                    
+                    if not confirmed:
+                        return {
+                            "success": False,
+                            "file_path": str(validated_path),
+                            "message": f"File deletion cancelled by user: {file_path}"
+                        }
+                
+                # Proceed with deletion
+                validated_path.unlink()
+                
+                self.logger.info(f"Deleted file: {validated_path}")
+                
+                return {
+                    "success": True,
+                    "file_path": str(validated_path),
+                    "message": f"File deleted successfully: {file_path}"
+                }
+                
+            except Exception as e:
+                self.logger.error(f"Error deleting file {file_path}: {e}")
+                raise
     
     async def copy_file(self, context: ToolContext, source_path: str, dest_path: str) -> Dict[str, Any]:
-        """Copy a file from source to destination."""
-        try:
-            source_validated = self._validate_path(source_path)
-            dest_validated = self._validate_path(dest_path)
-            
-            if not source_validated.exists():
-                raise FileNotFoundError(f"Source file not found: {source_path}")
-            
-            if not source_validated.is_file():
-                raise ValueError(f"Source path is not a file: {source_path}")
-            
-            self._ensure_parent_dir(dest_validated)
-            
-            # Copy the file
-            import shutil
-            shutil.copy2(source_validated, dest_validated)
-            
-            self.logger.info(f"Copied {source_validated} to {dest_validated}")
-            
-            return {
-                "success": True,
-                "source": str(source_validated),
-                "destination": str(dest_validated),
-                "message": f"File copied successfully: {source_path} -> {dest_path}"
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error copying file {source_path} -> {dest_path}: {e}")
-            raise
+            """Copy a file from source to destination with confirmation for overwrites."""
+            try:
+                source_validated = self._validate_path(source_path)
+                dest_validated = self._validate_path(dest_path)
+                
+                if not source_validated.exists():
+                    raise FileNotFoundError(f"Source file not found: {source_path}")
+                
+                if not source_validated.is_file():
+                    raise ValueError(f"Source path is not a file: {source_path}")
+                
+                # Check if destination already exists (overwrite scenario)
+                overwrite_confirmed = True
+                if dest_validated.exists():
+                    # Check if overwrite confirmation is needed
+                    requires_confirmation = should_require_confirmation(
+                        "copy_overwrite",
+                        {"source_path": str(source_validated), "dest_path": str(dest_validated)}
+                    )
+                    
+                    if requires_confirmation:
+                        overwrite_confirmed = await request_destructive_confirmation(
+                            tool_name="FileSystemTool",
+                            operation_type="copy",
+                            description=f"Copy file {source_path} to existing file {dest_path} (will overwrite)",
+                            parameters={
+                                "source_path": str(source_validated),
+                                "dest_path": str(dest_validated),
+                                "will_overwrite": True
+                            }
+                        )
+                        
+                        if not overwrite_confirmed:
+                            return {
+                                "success": False,
+                                "source": str(source_validated),
+                                "destination": str(dest_validated),
+                                "message": f"File copy cancelled by user: {source_path} -> {dest_path}"
+                            }
+                
+                self._ensure_parent_dir(dest_validated)
+                
+                # Copy the file
+                import shutil
+                shutil.copy2(source_validated, dest_validated)
+                
+                self.logger.info(f"Copied {source_validated} to {dest_validated}")
+                
+                return {
+                    "success": True,
+                    "source": str(source_validated),
+                    "destination": str(dest_validated),
+                    "message": f"File copied successfully: {source_path} -> {dest_path}"
+                }
+                
+            except Exception as e:
+                self.logger.error(f"Error copying file {source_path} -> {dest_path}: {e}")
+                raise
     
     async def get_file_info(self, context: ToolContext, file_path: str) -> Dict[str, Any]:
         """Get information about a file."""

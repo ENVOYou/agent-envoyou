@@ -18,3 +18,5 @@ secrets.toml
 tutorial_ADK-Google
 !.env.example
 logs/
+docs/ADK_COMPLIANCE_ANALYSIS_COMPLETE.md
+docs/TOOL_CONFIRMATION_IMPLEMENTATION.md

@@ -14,11 +14,29 @@ from .code_executor import CodeExecutorTool
 from .git_manager import GitManagerTool
 from .docker_builder import DockerBuilderTool
 from .package_manager import PackageManagerTool
+from .tool_confirmation import (
+    ToolConfirmationSystem,
+    tool_confirmation,
+    request_destructive_confirmation,
+    request_structured_confirmation,
+    should_require_confirmation,
+    ConfirmationType,
+    ConfirmationRequest,
+    ConfirmationResponse
+)
 
 __all__ = [
     'FileSystemTool',
-    'CodeExecutorTool', 
+    'CodeExecutorTool',
     'GitManagerTool',
     'DockerBuilderTool',
-    'PackageManagerTool'
+    'PackageManagerTool',
+    'ToolConfirmationSystem',
+    'tool_confirmation',
+    'request_destructive_confirmation',
+    'request_structured_confirmation',
+    'should_require_confirmation',
+    'ConfirmationType',
+    'ConfirmationRequest',
+    'ConfirmationResponse'
 ]
