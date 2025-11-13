@@ -35,6 +35,17 @@ from agent_envoyou.tools import (
     PackageManagerTool
 )
 
+# Import callback patterns
+from .callback_patterns import (
+    callback_patterns,
+    before_agent_callback,
+    after_agent_callback,
+    before_model_callback,
+    after_model_callback,
+    before_tool_callback,
+    after_tool_callback
+)
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -149,7 +160,14 @@ def create_agent_from_config(config_path: str) -> BaseAgent:
             model=model,  # Pass model directly (string for Gemini, LiteLlm wrapper for others)
             description=description,
             instruction=instruction,
-            tools=tools
+            tools=tools,
+            # Add ADK-compliant callback patterns
+            before_agent_callback=before_agent_callback,
+            after_agent_callback=after_agent_callback,
+            before_model_callback=before_model_callback,
+            after_model_callback=after_model_callback,
+            before_tool_callback=before_tool_callback,
+            after_tool_callback=after_tool_callback
         )
         
         # Add sub-agents if they exist
@@ -206,12 +224,19 @@ def create_fullstack_agent() -> BaseAgent:
         if not root_model_string.startswith("gemini"):
             root_model = create_lite_llm_model(root_model_string)
         
-        # Create the root agent following ADK patterns
+        # Create the root agent following ADK patterns with callback integration
         root_agent = LlmAgent(
             name=name,
             model=root_model,
             description=description,
-            instruction=instruction
+            instruction=instruction,
+            # Add ADK-compliant callback patterns for enterprise safety
+            before_agent_callback=before_agent_callback,
+            after_agent_callback=after_agent_callback,
+            before_model_callback=before_model_callback,
+            after_model_callback=after_model_callback,
+            before_tool_callback=before_tool_callback,
+            after_tool_callback=after_tool_callback
         )
         
         # Load frontend and backend agents
